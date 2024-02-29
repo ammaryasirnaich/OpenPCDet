@@ -14,10 +14,13 @@ import torch.distributed as dist
 from tqdm import tqdm
 from pathlib import Path
 from functools import partial
+from pcdet.ops.roiaware_pool3d import roiaware_pool3d_utils
+from pcdet.utils import box_utils, common_utils
+from pcdet.datasets.dataset import DatasetTemplate
 
-from ...ops.roiaware_pool3d import roiaware_pool3d_utils
-from ...utils import box_utils, common_utils
-from ..dataset import DatasetTemplate
+# from ...ops.roiaware_pool3d import roiaware_pool3d_utils
+# from ...utils import box_utils, common_utils
+# from ..dataset import DatasetTemplate
 
 
 class WaymoDataset(DatasetTemplate):
@@ -25,6 +28,8 @@ class WaymoDataset(DatasetTemplate):
         super().__init__(
             dataset_cfg=dataset_cfg, class_names=class_names, training=training, root_path=root_path, logger=logger
         )
+
+ 
         self.data_path = self.root_path / self.dataset_cfg.PROCESSED_DATA_TAG
         self.split = self.dataset_cfg.DATA_SPLIT[self.mode]
         split_dir = self.root_path / 'ImageSets' / (self.split + '.txt')
@@ -172,7 +177,8 @@ class WaymoDataset(DatasetTemplate):
         return sequence_file
 
     def get_infos(self, raw_data_path, save_path, num_workers=multiprocessing.cpu_count(), has_label=True, sampled_interval=1, update_info_only=False):
-        from . import waymo_utils
+        # from . import waymo_utils
+        from pcdet.datasets.waymo import waymo_utils
         print('---------------The waymo sample interval is %d, total sequecnes is %d-----------------'
               % (sampled_interval, len(self.sample_sequence_list)))
 
@@ -798,11 +804,22 @@ if __name__ == '__main__':
             yaml_config = yaml.safe_load(open(args.cfg_file))
         dataset_cfg = EasyDict(yaml_config)
         dataset_cfg.PROCESSED_DATA_TAG = args.processed_data_tag
+        
+        # data_path_temp= dataset_cfg.DATA_PATH
+        # print(type(data_path_temp))
+        # data_path=ROOT_DIR / 'data' / 'waymo',
+        # data_path = Path(dataset_cfg.DATA_PATH)
+        # print('data_path',data_path,': ', type(data_path) )
+        
         create_waymo_infos(
             dataset_cfg=dataset_cfg,
             class_names=['Vehicle', 'Pedestrian', 'Cyclist'],
-            data_path=ROOT_DIR / 'data' / 'waymo',
-            save_path=ROOT_DIR / 'data' / 'waymo',
+            data_path= Path(dataset_cfg.DATA_PATH),
+            save_path=Path(dataset_cfg.DATA_PATH),
+            
+            # data_path=ROOT_DIR / 'data' / 'waymo',
+            # save_path=ROOT_DIR / 'data' / 'waymo',
+            
             raw_data_tag='raw_data',
             processed_data_tag=args.processed_data_tag,
             update_info_only=args.update_info_only
@@ -817,8 +834,12 @@ if __name__ == '__main__':
         create_waymo_gt_database(
             dataset_cfg=dataset_cfg,
             class_names=['Vehicle', 'Pedestrian', 'Cyclist'],
-            data_path=ROOT_DIR / 'data' / 'waymo',
-            save_path=ROOT_DIR / 'data' / 'waymo',
+                  
+            data_path= Path(dataset_cfg.DATA_PATH),
+            save_path=Path(dataset_cfg.DATA_PATH),
+            
+            # data_path=ROOT_DIR / 'data' / 'waymo',
+            # save_path=ROOT_DIR / 'data' / 'waymo',
             processed_data_tag=args.processed_data_tag,
             use_parallel=args.use_parallel, 
             crop_gt_with_tail=not args.wo_crop_gt_with_tail
